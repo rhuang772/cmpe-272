@@ -1,6 +1,6 @@
 # cmpe-272
 
-Apache Kafka stack with Kafka UI, run via Docker Compose. Test
+Apache Kafka stack with Kafka UI, run via Docker Compose.
 
 ## Prerequisites
 
