@@ -12,7 +12,7 @@ Apache Kafka stack with Kafka UI, run via Docker Compose.
 Start the stack in the background and view the Kafka dashboard:
 
 ```bash
-docker compose up -d
+docker compose up 
 ```
 
 Stop the stack:
