@@ -23,7 +23,8 @@ That starts:
 - plane fetcher in the background
 
 If you want to test the Kafka path without real OpenSky data yet, open a second terminal and run:
-
+`[root]\services\plane-fetcher"
+npm install`
 `[root]\services\plane-fetcher"
 npm run publish:test-event`
 
