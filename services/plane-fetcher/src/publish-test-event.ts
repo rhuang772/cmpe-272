@@ -1,5 +1,5 @@
-import { loadConfig } from './config';
-import { PlaneEventsProducer } from './kafka/plane-events-producer';
+import { loadConfig } from "./config";
+import { PlaneEventsProducer } from "./kafka/plane-events-producer";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -19,11 +19,11 @@ async function main(): Promise<void> {
     await producer.publishUpdate({
       icao24,
       fetchedAt,
-      source: 'opensky',
+      source: "opensky",
       plane: {
         id: icao24,
-        callsign: 'TEST123',
-        originCountry: 'Test Country',
+        callsign: "4ca2b1",
+        originCountry: "Test Country",
         lat: 37.6213,
         lng: -122.379,
         altitudeM: 10668,
@@ -46,7 +46,9 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const message =
-    error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+    error instanceof Error
+      ? `${error.message}\n${error.stack ?? ""}`
+      : String(error);
   console.error(message);
   process.exit(1);
 });
