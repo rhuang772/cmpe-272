@@ -24,7 +24,7 @@ That starts:
 
 If you want to test the Kafka path without real OpenSky data yet, open a second terminal and run:
 
-`cd "C:\Users\phamm\OneDrive\Desktop\Personal CS project\CMPE 272 - SW Enterprise\cmpe-272\services\plane-fetcher"
+`[root]\services\plane-fetcher"
 npm run publish:test-event`
 
 Then check the gateway:
