@@ -57,7 +57,7 @@ export class OpenSkyClient {
 
     const states = data.states ?? [];
     console.log('states: ', states);
-    const raw = states[.find((state: OpenSkyStateRow) => state !== null)];
+    const raw = states.find((state: OpenSkyStateRow) => state !== null) || null;
     
     return raw ? mapOpenSkyStateRow(raw) : null;
 
