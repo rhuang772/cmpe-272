@@ -5,6 +5,9 @@ import type { OpenSkyFirstPlaneDto, OpenSkyStatesResponse, OpenSkyStateRow } fro
 export class OpenSkyClient {
   private readonly http: AxiosInstance;
   private readonly statesUrl = 'https://opensky-network.org/api/states/all';
+  private readonly tokenUrl = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
+  private accessToken: string | null = null;
+  private expiresAt: number = 0; 
 
   constructor(
     private readonly auth?: {
@@ -12,33 +15,51 @@ export class OpenSkyClient {
       clientSecret: string;
     },
   ) {
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-    };
-
-    if (auth) {
-      const token = Buffer.from(
-        `${auth.clientId}:${auth.clientSecret}`,
-      ).toString('base64');
-      headers.Authorization = `Basic ${token}`;
-    }
 
     this.http = axios.create({
       timeout: 20000,
       maxRedirects: 3,
-      headers,
+      headers:{ Accept: 'application/json' },
     });
   }
 
+  private async refreshAccessToken(): Promise<void> {
+
+    // Check if auth exists before accessing properties
+    if (!this.auth) {
+      throw new Error('OpenSkyClient: Authentication credentials are required for OAuth2 flow.');
+    }
+
+    const params = new URLSearchParams();
+    params.append('grant_type', 'client_credentials');
+    params.append('client_id', this.auth.clientId);
+    params.append('client_secret', this.auth.clientSecret);
+
+    const { data } = await axios.post(this.tokenUrl, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+
+    this.accessToken = data.access_token;
+    this.expiresAt = Date.now() + (data.expires_in * 1000);
+  }
+
   async fetchPlaneByIcao24(icao24: string): Promise<OpenSkyFirstPlaneDto | null> {
-    const { data } = await this.http.get<OpenSkyStatesResponse>(this.statesUrl, {
-      params: { icao24 },
+    console.log('fetchPlaneByIcao24 started');
+    const now = Date.now();
+    if (!this.accessToken || now >= (this.expiresAt - 60000)) {
+      await this.refreshAccessToken();
+    }
+
+    const { data } = await this.http.get(this.statesUrl, {
+      params: { icao24: icao24.toLowerCase() },
+      headers: { Authorization: `Bearer ${this.accessToken}` },
     });
 
     const states = data.states ?? [];
-    const raw = states.find((state) => state != null) as OpenSkyStateRow | undefined;
-    if (!raw) return null;
+    console.log('states: ', states);
+    const raw = states[.find((state: OpenSkyStateRow) => state !== null)];
+    
+    return raw ? mapOpenSkyStateRow(raw) : null;
 
-    return mapOpenSkyStateRow(raw);
   }
 }

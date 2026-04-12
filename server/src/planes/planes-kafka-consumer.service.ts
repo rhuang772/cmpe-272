@@ -50,7 +50,7 @@ export class PlanesKafkaConsumerService
     await this.consumer.connect();
     await this.consumer.subscribe({
       topic: this.topic,
-      fromBeginning: false,
+      fromBeginning: true,
     });
 
     await this.consumer.run({

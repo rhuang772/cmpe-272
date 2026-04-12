@@ -64,8 +64,7 @@ export function loadConfig(): AppConfig {
   }
 
   const openSkyClientId = process.env.OPENSKY_CLIENT_ID?.trim() || undefined;
-  const openSkyClientSecret =
-    process.env.OPENSKY_CLIENT_SECRET?.trim() || undefined;
+  const openSkyClientSecret = process.env.OPENSKY_CLIENT_SECRET?.trim() || undefined;
 
   if ((openSkyClientId && !openSkyClientSecret) || (!openSkyClientId && openSkyClientSecret)) {
     throw new Error(

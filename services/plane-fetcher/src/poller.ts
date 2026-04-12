@@ -13,6 +13,7 @@ export class PlanePoller {
   ) {}
 
   async start(): Promise<void> {
+    console.log('polle start() started');
     await this.pollOnce();
     this.intervalHandle = setInterval(() => {
       void this.pollOnce();
@@ -27,6 +28,7 @@ export class PlanePoller {
   }
 
   private async pollOnce(): Promise<void> {
+    console.log('pollOnce started');
     if (this.isPolling) {
       console.warn('Skipping poll tick because the previous poll is still running');
       return;
