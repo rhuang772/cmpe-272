@@ -62,4 +62,19 @@ export class OpenSkyClient {
     return raw ? mapOpenSkyStateRow(raw) : null;
 
   }
+
+  async fetchAllPlanes(): Promise<OpenSkyFirstPlaneDto[]> {
+    console.log('fetchAllPlanes started');
+    const now = Date.now();
+    if (!this.accessToken || now >= (this.expiresAt - 60000)) {
+      await this.refreshAccessToken();
+    }
+
+    const { data } = await this.http.get(this.statesUrl, {
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    const states = data.states ?? [];
+    console.log('states: ', states);
+    return states.map((state: OpenSkyStateRow) => mapOpenSkyStateRow(state)).filter((plane: OpenSkyFirstPlaneDto | null) => plane !== null);
+  }
 }

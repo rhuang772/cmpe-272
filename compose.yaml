@@ -59,7 +59,6 @@ services:
     build:
       context: ./services/plane-fetcher
     environment:
-      TRACKED_ICAO24S: ${TRACKED_ICAO24S:-4ca2b1}
       POLL_MS: ${POLL_MS:-10000}
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: plane-fetcher

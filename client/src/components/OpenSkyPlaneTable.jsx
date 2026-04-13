@@ -81,7 +81,7 @@ export default function OpenSkyPlaneTable({
             <TableRow>
               <TableCell>ICAO24</TableCell>
               <TableCell>Callsign</TableCell>
-              <TableCell>Country</TableCell>
+              <TableCell>Origin</TableCell>
               <TableCell align="right">Lat</TableCell>
               <TableCell align="right">Lng</TableCell>
               <TableCell align="right">Alt (m)</TableCell>

@@ -22,7 +22,6 @@ async function bootstrap(): Promise<void> {
   );
 
   const poller = new PlanePoller(
-    config.trackedIcao24s,
     config.pollMs,
     openSkyClient,
     producer,
@@ -30,8 +29,8 @@ async function bootstrap(): Promise<void> {
 
   await producer.connect();
 
-  console.log('Plane fetcher started');
-  console.log(`Tracking ICAO24 values: ${config.trackedIcao24s.join(', ')}`);
+  console.log('Plane fetcher started (polling all planes)');
+  console.log(`Poll interval: ${config.pollMs}ms`);
   console.log(`Kafka brokers: ${config.kafkaBrokers.join(', ')}`);
   console.log(`Update topic: ${config.kafkaUpdatesTopic}`);
   console.log(`Error topic: ${config.kafkaErrorsTopic}`);

@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import { normalizeIcao24 } from './opensky/normalize-icao24';
 
 dotenv.config();
 
@@ -11,25 +10,6 @@ function requireNonEmpty(name: string, fallback?: string): string {
   return value.trim();
 }
 
-function parseTrackedIcaos(raw: string): string[] {
-  const seen = new Set<string>();
-
-  for (const part of raw.split(',')) {
-    const normalized = normalizeIcao24(part);
-    if (normalized) {
-      seen.add(normalized);
-    }
-  }
-
-  if (seen.size === 0) {
-    throw new Error(
-      'TRACKED_ICAO24S must include at least one valid 6-character hex ICAO24 value',
-    );
-  }
-
-  return [...seen];
-}
-
 function parsePositiveInt(name: string, fallback: string): number {
   const value = Number(requireNonEmpty(name, fallback));
   if (!Number.isFinite(value) || value <= 0) {
@@ -39,7 +19,6 @@ function parsePositiveInt(name: string, fallback: string): number {
 }
 
 export interface AppConfig {
-  trackedIcao24s: string[];
   pollMs: number;
   kafkaBrokers: string[];
   kafkaClientId: string;
@@ -50,10 +29,6 @@ export interface AppConfig {
 }
 
 export function loadConfig(): AppConfig {
-  const trackedIcao24s = parseTrackedIcaos(
-    requireNonEmpty('TRACKED_ICAO24S', '4ca2b1'),
-  );
-
   const kafkaBrokers = requireNonEmpty('KAFKA_BROKERS', 'localhost:9092')
     .split(',')
     .map((broker) => broker.trim())
@@ -73,7 +48,6 @@ export function loadConfig(): AppConfig {
   }
 
   return {
-    trackedIcao24s,
     pollMs: parsePositiveInt('POLL_MS', '10000'),
     kafkaBrokers,
     kafkaClientId: requireNonEmpty('KAFKA_CLIENT_ID', 'plane-fetcher'),
