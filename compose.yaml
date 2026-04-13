@@ -4,15 +4,28 @@ services:
     ports:
       - "9092:9092"
     environment:
-      KAFKA_LISTENERS: CONTROLLER://localhost:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
+      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: HOST://localhost:9092,DOCKER://kafka:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9091
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9091
       KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CLUSTER_ID: mkU3O9S6T76iI4XvU6fK8w
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+
+  kafka-init:
+    image: apache/kafka-native
+    depends_on:
+      - kafka
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.opensky.updates &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.opensky.errors
+
 
   kafka-ui:
     image: kafbat/kafka-ui:main
@@ -24,3 +37,35 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
     depends_on:
       - kafka
+      
+  api-gateway:
+    build:
+      context: ./server
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      KAFKA_BROKERS: kafka:9093
+      KAFKA_CLIENT_ID: api-gateway
+      KAFKA_CONSUMER_GROUP_ID: api-gateway-group
+      KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
+      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID}
+      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET}
+    depends_on:
+      - kafka
+      - kafka-init
+
+  plane-fetcher:
+    build:
+      context: ./services/plane-fetcher
+    environment:
+      POLL_MS: ${POLL_MS:-10000}
+      KAFKA_BROKERS: kafka:9093
+      KAFKA_CLIENT_ID: plane-fetcher
+      KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
+      KAFKA_TOPIC_PLANES_ERRORS: planes.opensky.errors
+      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID:-}
+      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET:-}
+    depends_on:
+      - kafka
+      - kafka-init

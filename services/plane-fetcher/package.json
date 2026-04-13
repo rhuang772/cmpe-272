@@ -1,0 +1,23 @@
+{
+  "name": "plane-fetcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Polls OpenSky and publishes plane updates to Kafka.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node src/main.ts",
+    "publish:test-event": "ts-node src/publish-test-event.ts"
+  },
+  "dependencies": {
+    "axios": "^1.14.0",
+    "dotenv": "^17.2.3",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
