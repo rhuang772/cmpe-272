@@ -12,13 +12,19 @@ import FlightMap from '../components/FlightMap';
 import OpenSkyPlaneTable from '../components/OpenSkyPlaneTable';
 import { fetchOpenSkyPlane } from '../api/planes';
 import { normalizeIcao24 } from '../utils/icao24';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const POLL_MS = 10_000;
+// Constants for takeoff/landing
+const ALT_THRESHOLD = 1000; 
+const V_RATE_THRESHOLD = 2.5;
 
 /**
  * @param {import('../types/opensky-plane').OpenSkyFirstPlane} p
  * @returns {import('../types/plane').Plane}
  */
+
 function openSkyToMapPlane(p) {
   return {
     id: p.id,
@@ -37,6 +43,10 @@ export default function FlightMapTestPage() {
     /** @type {string | null} */ (null),
   );
 
+  //notification state
+  const [notif, setNotif] = useState({ open: false, msg: '', severity: 'info' });
+  const [persistentStatus, setPersistentStatus] = useState(null);
+
   const [openSkyPlane, setOpenSkyPlane] = useState(
     /** @type {import('../types/opensky-plane').OpenSkyFirstPlane | null} */ (
       null
@@ -50,6 +60,8 @@ export default function FlightMapTestPage() {
     /** @type {Date | null} */ (null),
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const prevPlaneRef = useRef(null);
   const initialPollDoneRef = useRef(false);
 
   useEffect(() => {
@@ -57,14 +69,12 @@ export default function FlightMapTestPage() {
       setOpenSkyPlane(null);
       setLastUpdated(null);
       setOpenSkyError(null);
+      setPersistentStatus(null);
       initialPollDoneRef.current = false;
       return;
     }
 
     let cancelled = false;
-    initialPollDoneRef.current = false;
-    setOpenSkyPlane(null);
-    setLastUpdated(null);
 
     const poll = async () => {
       if (!initialPollDoneRef.current) {
@@ -72,12 +82,52 @@ export default function FlightMapTestPage() {
       } else {
         setIsRefreshing(true);
       }
+
       setOpenSkyError(null);
+
       try {
-        const { plane } = await fetchOpenSkyPlane(trackedIcao24);
+        const { plane: curr } = await fetchOpenSkyPlane(trackedIcao24);
         if (cancelled) return;
-        setOpenSkyPlane(plane);
+        
+        //notification
+        const prev = prevPlaneRef.current;
+        if (prev && prev.id === curr.id) {
+          
+          //Landing Commencing
+          if (!curr.onGround && curr.altitudeM < ALT_THRESHOLD && curr.verticalRateMps < -V_RATE_THRESHOLD) {
+            setPersistentStatus(`Landing Commencing: ${curr.callsign} is on final approach.`);
+          }
+
+          //Takeoff Success -> Initial Climb
+          if (prev.onGround && !curr.onGround) {
+            setNotif({ 
+              open: true, 
+              msg: `Takeoff Successful: ${curr.callsign} is now airborne.`, 
+              severity: 'success' 
+            });
+            setPersistentStatus(`Initial Climb: ${curr.callsign} is gaining altitude rapidly.`);
+          }
+
+          // Landing Success
+          if (!prev.onGround && curr.onGround) {
+            setPersistentStatus(null);
+            setNotif({ 
+              open: true, 
+              msg: `Landing Successful: ${curr.callsign} has touched down.`, 
+              severity: 'success' 
+            });
+          }
+
+          //Climb Complete
+          if (persistentStatus?.includes('Initial Climb') && curr.altitudeM > ALT_THRESHOLD) {
+            setPersistentStatus(null);
+          }
+        }
+
+        setOpenSkyPlane(curr);
+        prevPlaneRef.current = curr;
         setLastUpdated(new Date());
+
       } catch (e) {
         if (!cancelled) {
           setOpenSkyError(
@@ -100,12 +150,14 @@ export default function FlightMapTestPage() {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [trackedIcao24]);
+  }, [trackedIcao24, persistentStatus]);
 
   const mapPlanes = useMemo(() => {
     if (!openSkyPlane) return [];
     return [openSkyToMapPlane(openSkyPlane)];
   }, [openSkyPlane]);
+
+  
 
   const mapTitle = 'Aircraft (OpenSky)';
 
@@ -120,97 +172,78 @@ export default function FlightMapTestPage() {
     setTrackedIcao24(n);
   };
 
-  const handleStop = () => {
-    setTrackedIcao24(null);
-    setInitialLoading(false);
-    setIsRefreshing(false);
-  };
+  const handleStop = () => setTrackedIcao24(null);
+
+  const handleCloseNotif = () => setNotif({ ...notif, open: false });
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Stack spacing={2} sx={{ mb: 3 }}>
-        <Box>
-          <Button component={RouterLink} to="/" variant="text" size="small">
-            ← Home
-          </Button>
-        </Box>
-        <Typography variant="h4" component="h1" fontWeight={700}>
-          Flight map (test)
-        </Typography>
+        <Button component={RouterLink} to="/" variant="text" size="small" sx={{ alignSelf: 'flex-start' }}>
+          ← Home
+        </Button>
+        <Typography variant="h4" fontWeight={700}>Flight map (test)</Typography>
         <Typography variant="body2" color="text.secondary">
           Enter an aircraft ICAO24 address (6 hex digits). Data refreshes every{' '}
           {POLL_MS / 1000}s while tracking.
         </Typography>
       </Stack>
 
-      <Box
-        component="form"
-        onSubmit={handleTrack}
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 2,
-          alignItems: 'flex-start',
-          mb: 3,
-        }}
-      >
+      <Box component="form" onSubmit={handleTrack} sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'flex-start' }}>
         <TextField
           label="ICAO24"
-          placeholder="e.g. 4ca2b1"
           value={icaoInput}
-          onChange={(e) => {
-            setIcaoInput(e.target.value);
-            setFormError(null);
-          }}
+          onChange={(e) => setIcaoInput(e.target.value)}
           error={Boolean(formError)}
           helperText={formError || 'Lowercase hex, 6 characters'}
           size="small"
-          sx={{ minWidth: 200 }}
-          inputProps={{ maxLength: 8, spellCheck: false }}
         />
-        <Button type="submit" variant="contained" sx={{ mt: 0.5 }}>
-          Track
-        </Button>
-        {trackedIcao24 && (
-          <Button
-            type="button"
-            variant="outlined"
-            color="secondary"
-            sx={{ mt: 0.5 }}
-            onClick={handleStop}
-          >
-            Stop tracking
-          </Button>
-        )}
+        <Button type="submit" variant="contained">Track</Button>
+        {trackedIcao24 && <Button onClick={handleStop} variant="outlined" color="secondary">Stop</Button>}
       </Box>
 
-      {openSkyError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {openSkyError} — ensure the API is running (
-          <code>cd server && npm run start:dev</code>) and OpenSky is reachable.
+      {openSkyError && <Alert severity="warning" sx={{ mb: 2 }}>{openSkyError}</Alert>}
+
+      {/* Persistent Status Banner */}
+      {persistentStatus && (
+        <Alert 
+          severity="info" 
+          variant="filled" 
+          sx={{ 
+            mb: 2, 
+            fontWeight: 600,
+            backgroundColor: persistentStatus.includes('Landing') ? 'warning.main' : 'info.main'
+          }}
+        >
+          {persistentStatus}
         </Alert>
       )}
 
       {trackedIcao24 && (
-        <Box sx={{ mb: 3 }}>
-          <OpenSkyPlaneTable
-            initialLoading={initialLoading}
-            trackedIcao24={trackedIcao24}
-            plane={openSkyPlane}
-            lastUpdated={lastUpdated}
-            refreshing={isRefreshing}
-          />
-        </Box>
+        <>
+          <Box sx={{ mb: 3 }}>
+            <OpenSkyPlaneTable
+              initialLoading={initialLoading}
+              trackedIcao24={trackedIcao24}
+              plane={openSkyPlane}
+              lastUpdated={lastUpdated}
+              refreshing={isRefreshing}
+            />
+          </Box>
+          <FlightMap planes={mapPlanes} title="Aircraft (OpenSky)" height={440} fitBoundsKey={trackedIcao24} />
+        </>
       )}
 
-      {trackedIcao24 && (
-        <FlightMap
-          planes={mapPlanes}
-          title={mapTitle}
-          height={440}
-          fitBoundsKey={trackedIcao24}
-        />
-      )}
+      <Snackbar 
+        open={notif.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotif}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MuiAlert onClose={handleCloseNotif} severity={notif.severity} variant="filled">
+          {notif.msg}
+        </MuiAlert>
+      </Snackbar>
     </Container>
   );
 }
