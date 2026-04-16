@@ -21,4 +21,5 @@ export interface OpenSkyFirstPlaneDto {
   verticalRateMps: number | null;
   timePosition: number | null;
   lastContact: number | null;
+  category: any | null;
 }

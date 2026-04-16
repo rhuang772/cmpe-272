@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, isAxiosError } from 'axios';
 import { mapOpenSkyStateRow } from './map-open-sky-state-row';
 import type { OpenSkyFirstPlaneDto, OpenSkyStatesResponse, OpenSkyStateRow } from '../types';
 
@@ -51,7 +51,7 @@ export class OpenSkyClient {
     }
 
     const { data } = await this.http.get(this.statesUrl, {
-      params: { icao24: icao24.toLowerCase() },
+      params: { icao24: icao24.toLowerCase(), extended: 1 },
       headers: { Authorization: `Bearer ${this.accessToken}` },
     });
 
@@ -70,11 +70,23 @@ export class OpenSkyClient {
       await this.refreshAccessToken();
     }
 
-    const { data } = await this.http.get(this.statesUrl, {
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
-    const states = data.states ?? [];
-    console.log('states: ', states);
-    return states.map((state: OpenSkyStateRow) => mapOpenSkyStateRow(state)).filter((plane: OpenSkyFirstPlaneDto | null) => plane !== null);
+    try {
+      const response = await this.http.get(this.statesUrl, {
+        params: { extended: 1 },
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      });
+      const remaining = response.headers['x-rate-limit-remaining'];
+      if (remaining != null) console.log(`Rate limit remaining: ${remaining}`);
+      const states = response.data.states ?? [];
+      console.log('states: ', states);
+      return states.map((state: OpenSkyStateRow) => mapOpenSkyStateRow(state)).filter((plane: OpenSkyFirstPlaneDto | null) => plane !== null);
+    } catch (error) {
+      if (isAxiosError(error) && error.response) {
+        const retryAfter = error.response.headers['x-rate-limit-retry-after-seconds'];
+        const remaining = error.response.headers['x-rate-limit-remaining'];
+        console.error(`OpenSky API ${error.response.status} | Remaining: ${remaining ?? 'n/a'} | Retry after: ${retryAfter ?? 'n/a'}s`);
+      }
+      throw error;
+    }
   }
 }
