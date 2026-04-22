@@ -76,9 +76,9 @@ export class OpenSkyClient {
         headers: { Authorization: `Bearer ${this.accessToken}` },
       });
       const remaining = response.headers['x-rate-limit-remaining'];
-      if (remaining != null) console.log(`Rate limit remaining: ${remaining}`);
       const states = response.data.states ?? [];
       console.log('states: ', states);
+      if (remaining != null) console.log(`Rate limit remaining: ${remaining}`);
       return states.map((state: OpenSkyStateRow) => mapOpenSkyStateRow(state)).filter((plane: OpenSkyFirstPlaneDto | null) => plane !== null);
     } catch (error) {
       if (isAxiosError(error) && error.response) {

@@ -114,6 +114,7 @@ export default function AnalyticsDashboardPage() {
 
   const topCountries = data?.countryBreakdown?.slice(0, 15) ?? [];
   const filteredCategories = data?.categoryBreakdown ?? [];
+  const categoryTotal = filteredCategories.reduce((sum, c) => sum + c.count, 0);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -191,6 +192,9 @@ export default function AnalyticsDashboardPage() {
             }}
           >
             <Typography variant="caption" color="#fff" fontWeight={600}>
+              # of Planes:
+            </Typography>
+            <Typography variant="caption" color="#fff" fontWeight={600}>
               0
             </Typography>
             <Box
@@ -253,13 +257,11 @@ export default function AnalyticsDashboardPage() {
                 data={filteredCategories}
                 dataKey="count"
                 nameKey="category"
-                cx="50%"
+                cx="35%"
                 cy="50%"
                 outerRadius={120}
-                label={({ category, percent }) =>
-                  `${category} ${(percent * 100).toFixed(0)}%`
-                }
-                labelLine={true}
+                label={false}
+                labelLine={false}
               >
                 {filteredCategories.map((_, i) => (
                   <Cell
@@ -273,8 +275,28 @@ export default function AnalyticsDashboardPage() {
                   backgroundColor: '#12181f',
                   border: '1px solid #333',
                 }}
+                formatter={(value, name) => {
+                  const pct =
+                    categoryTotal > 0
+                      ? ((value / categoryTotal) * 100).toFixed(1)
+                      : '0';
+                  return [`${value.toLocaleString()} (${pct}%)`, name];
+                }}
               />
-              <Legend />
+              <Legend
+                layout="vertical"
+                verticalAlign="middle"
+                align="right"
+                wrapperStyle={{ fontSize: 12, lineHeight: '20px' }}
+                formatter={(value, entry) => {
+                  const count = entry?.payload?.count ?? 0;
+                  const pct =
+                    categoryTotal > 0
+                      ? ((count / categoryTotal) * 100).toFixed(1)
+                      : '0';
+                  return `${value} — ${pct}%`;
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </ChartPanel>
