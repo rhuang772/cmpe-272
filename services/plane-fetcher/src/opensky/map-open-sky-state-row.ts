@@ -20,6 +20,7 @@ export function mapOpenSkyStateRow(
   const velocity = row[9];
   const trueTrack = row[10];
   const verticalRate = row[11];
+  const category = row[17];
 
   if (typeof icao24 !== 'string' || latitude == null || longitude == null) {
     return null;
@@ -52,5 +53,6 @@ export function mapOpenSkyStateRow(
     verticalRateMps: typeof verticalRate === 'number' ? verticalRate : null,
     timePosition: typeof timePosition === 'number' ? timePosition : null,
     lastContact: typeof lastContact === 'number' ? lastContact : null,
+    category: typeof category === 'number' ? category : null,
   };
 }

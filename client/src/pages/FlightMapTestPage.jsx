@@ -135,7 +135,7 @@ export default function FlightMapTestPage() {
           </Button>
         </Box>
         <Typography variant="h4" component="h1" fontWeight={700}>
-          Flight map (test)
+          Flight Map
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Enter an aircraft ICAO24 address (6 hex digits). Data refreshes every{' '}

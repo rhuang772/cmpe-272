@@ -21,16 +21,16 @@ export interface PlaneUpdateEvent {
   plane: OpenSkyFirstPlaneDto | null;
 }
 
-export interface PlaneFetchErrorEvent {
-  icao24: string;
-  fetchedAt: number;
-  source: 'opensky';
-  error: string;
+export interface PlaneAnalytics {
+  totalAirborne: number;
+  totalOnGround: number;
+  ascending: number;
+  descending: number;
+  cruising: number;
+  countryBreakdown: { country: string; count: number }[];
+  altitudeHistogram: { bucket: string; count: number }[];
+  speedHistogram: { bucket: string; count: number }[];
+  categoryBreakdown: { category: string; count: number }[];
+  heatmapPoints: [number, number][];
+  heatmapMax: number;
 }
-
-export interface OpenSkyStatesResponse {
-  time: number;
-  states: (OpenSkyStateRow | null)[] | null;
-}
-
-export type OpenSkyStateRow = (string | number | boolean | null)[];

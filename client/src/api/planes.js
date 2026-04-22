@@ -24,3 +24,15 @@ export async function fetchOpenSkyPlane(icao24) {
   }
   return res.json();
 }
+
+/**
+ * Fetches aggregated analytics from the analytics microservice.
+ * @returns {Promise<import('../types/opensky-plane').PlaneAnalytics>}
+ */
+export async function fetchAnalytics() {
+  const res = await fetch('/analytics-api/analytics');
+  if (!res.ok) {
+    throw new Error(`Analytics request failed: ${res.status}`);
+  }
+  return res.json();
+}
