@@ -48,9 +48,11 @@ services:
       KAFKA_CONSUMER_GROUP_ID: api-gateway-group
       KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
       KAFKA_TOPIC_WEATHER_IMPACTS: planes.weather.impacts
+      WEATHER_ENRICHER_BASE_URL: http://weather-enricher:4002
     depends_on:
       - kafka
       - kafka-init
+      - weather-enricher
 
   plane-fetcher:
     build:
@@ -71,15 +73,14 @@ services:
   weather-enricher:
     build:
       context: ./services/weather-enricher
+    ports:
+      - "4002:4002"
     environment:
-      KAFKA_BROKERS: kafka:9093
-      KAFKA_CLIENT_ID: weather-enricher
-      KAFKA_CONSUMER_GROUP_ID: weather-enricher-group
-      KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
-      KAFKA_TOPIC_WEATHER_IMPACTS: planes.weather.impacts
+      PORT: 4002
       NOAA_ALERTS_BASE_URL: https://api.weather.gov
       NOAA_USER_AGENT: "cmpe-272-weather-enricher/1.0 (contact: team@example.com)"
       WEATHER_CACHE_TTL_MS: ${WEATHER_CACHE_TTL_MS:-30000}
+      ENABLE_SEATTLE_THUNDERSTORM_DEMO: ${ENABLE_SEATTLE_THUNDERSTORM_DEMO:-true}
   analytics:
     build:
       context: ./services/analytics

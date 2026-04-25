@@ -1,7 +1,14 @@
 import { calculateImpact } from './impact/calculate-impact';
-import { WeatherImpactsProducer } from './kafka/weather-impacts-producer';
+import {
+  createSeattleThunderstormAlert,
+  isInSeattleDemoArea,
+} from './demo/seattle-thunderstorm';
 import { NoaaAlertsClient } from './noaa/noaa-alerts-client';
-import type { PlaneUpdateEvent, WeatherImpactEvent } from './types';
+import type {
+  PlaneUpdateEvent,
+  WeatherAlertSummary,
+  WeatherImpactEvent,
+} from './types';
 
 interface CachedWeather {
   lat: number;
@@ -15,13 +22,13 @@ export class WeatherEnricher {
 
   constructor(
     private readonly noaaClient: NoaaAlertsClient,
-    private readonly producer: WeatherImpactsProducer,
     private readonly cacheTtlMs: number,
+    private readonly enableSeattleThunderstormDemo: boolean,
   ) {}
 
-  async processPlaneUpdate(event: PlaneUpdateEvent): Promise<void> {
+  async enrichPlane(event: PlaneUpdateEvent): Promise<WeatherImpactEvent> {
     if (!event.plane) {
-      return;
+      throw new Error('Plane data is required for weather enrichment');
     }
 
     const cached = this.cache.get(event.icao24);
@@ -35,16 +42,29 @@ export class WeatherEnricher {
         event.plane.lng,
       )
     ) {
-      await this.producer.publishImpact({
+      return {
         ...cached.event,
         fetchedAt: event.fetchedAt,
-      });
-      return;
+      };
     }
 
-    const alerts = await this.noaaClient.fetchActiveAlerts(
+    let noaaAlerts: WeatherAlertSummary[] = [];
+    try {
+      noaaAlerts = await this.noaaClient.fetchActiveAlerts(
+        event.plane.lat,
+        event.plane.lng,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown NOAA fetch error';
+      console.warn(
+        `NOAA alerts lookup failed for ${event.icao24}: ${message}. Continuing with demo alerts if applicable.`,
+      );
+    }
+    const alerts = this.applySeattleDemoAlert(
       event.plane.lat,
       event.plane.lng,
+      noaaAlerts,
     );
     const impact = calculateImpact(alerts);
     const weatherEvent: WeatherImpactEvent = {
@@ -67,7 +87,24 @@ export class WeatherEnricher {
       event: weatherEvent,
     });
 
-    await this.producer.publishImpact(weatherEvent);
+    return weatherEvent;
+  }
+
+  private applySeattleDemoAlert(
+    lat: number,
+    lng: number,
+    alerts: WeatherAlertSummary[],
+  ): WeatherAlertSummary[] {
+    if (!this.enableSeattleThunderstormDemo || !isInSeattleDemoArea(lat, lng)) {
+      return alerts;
+    }
+
+    const thunderstormAlert = createSeattleThunderstormAlert();
+    const withoutDuplicate = alerts.filter(
+      (alert) => alert.id !== thunderstormAlert.id,
+    );
+
+    return [thunderstormAlert, ...withoutDuplicate];
   }
 
   private hasSameRoundedPoint(

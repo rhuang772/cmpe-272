@@ -19,41 +19,39 @@ function parsePositiveInt(name: string, fallback: string): number {
 }
 
 export interface AppConfig {
-  kafkaBrokers: string[];
-  kafkaClientId: string;
-  kafkaConsumerGroupId: string;
-  kafkaPlaneUpdatesTopic: string;
-  kafkaWeatherImpactsTopic: string;
+  port: number;
   noaaAlertsBaseUrl: string;
   noaaUserAgent: string;
   weatherCacheTtlMs: number;
+  enableSeattleThunderstormDemo: boolean;
+}
+
+function parseBoolean(value: string | undefined, fallback: boolean): boolean {
+  if (value == null || value.trim() === '') {
+    return fallback;
+  }
+
+  switch (value.trim().toLowerCase()) {
+    case '1':
+    case 'true':
+    case 'yes':
+    case 'on':
+      return true;
+    case '0':
+    case 'false':
+    case 'no':
+    case 'off':
+      return false;
+    default:
+      throw new Error(
+        'ENABLE_SEATTLE_THUNDERSTORM_DEMO must be a boolean-like value',
+      );
+  }
 }
 
 export function loadConfig(): AppConfig {
-  const kafkaBrokers = requireNonEmpty('KAFKA_BROKERS', 'localhost:9092')
-    .split(',')
-    .map((broker) => broker.trim())
-    .filter(Boolean);
-
-  if (kafkaBrokers.length === 0) {
-    throw new Error('KAFKA_BROKERS must include at least one broker');
-  }
-
   return {
-    kafkaBrokers,
-    kafkaClientId: requireNonEmpty('KAFKA_CLIENT_ID', 'weather-enricher'),
-    kafkaConsumerGroupId: requireNonEmpty(
-      'KAFKA_CONSUMER_GROUP_ID',
-      'weather-enricher-group',
-    ),
-    kafkaPlaneUpdatesTopic: requireNonEmpty(
-      'KAFKA_TOPIC_PLANES_UPDATES',
-      'planes.opensky.updates',
-    ),
-    kafkaWeatherImpactsTopic: requireNonEmpty(
-      'KAFKA_TOPIC_WEATHER_IMPACTS',
-      'planes.weather.impacts',
-    ),
+    port: parsePositiveInt('PORT', '4002'),
     noaaAlertsBaseUrl: requireNonEmpty(
       'NOAA_ALERTS_BASE_URL',
       'https://api.weather.gov',
@@ -63,5 +61,9 @@ export function loadConfig(): AppConfig {
       'cmpe-272-weather-enricher/1.0 (contact: instructor@example.com)',
     ),
     weatherCacheTtlMs: parsePositiveInt('WEATHER_CACHE_TTL_MS', '30000'),
+    enableSeattleThunderstormDemo: parseBoolean(
+      process.env.ENABLE_SEATTLE_THUNDERSTORM_DEMO,
+      true,
+    ),
   };
 }
