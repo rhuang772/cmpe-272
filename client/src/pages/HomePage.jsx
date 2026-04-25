@@ -16,14 +16,24 @@ export default function HomePage() {
           Open the flight map test page to see the Leaflet + MUI map fed by the
           NestJS backend.
         </Typography>
-        <Button
-          component={RouterLink}
-          to="/flight-map"
-          variant="contained"
-          size="large"
-        >
-          Flight map test
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Button
+            component={RouterLink}
+            to="/flight-map"
+            variant="contained"
+            size="large"
+          >
+            Flight map
+          </Button>
+          <Button
+            component={RouterLink}
+            to="/analytics"
+            variant="outlined"
+            size="large"
+          >
+            Analytics dashboard
+          </Button>
+        </Box>
       </Stack>
       <Box sx={{ mt: 6, opacity: 0.6 }}>
         <Typography variant="caption">

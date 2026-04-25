@@ -80,6 +80,17 @@ services:
       NOAA_ALERTS_BASE_URL: https://api.weather.gov
       NOAA_USER_AGENT: "cmpe-272-weather-enricher/1.0 (contact: team@example.com)"
       WEATHER_CACHE_TTL_MS: ${WEATHER_CACHE_TTL_MS:-30000}
+  analytics:
+    build:
+      context: ./services/analytics
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      KAFKA_BROKERS: kafka:9093
+      KAFKA_CLIENT_ID: analytics
+      KAFKA_CONSUMER_GROUP_ID: analytics-group
+      KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
     depends_on:
       - kafka
       - kafka-init
