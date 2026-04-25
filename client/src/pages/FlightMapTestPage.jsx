@@ -97,7 +97,7 @@ export default function FlightMapTestPage() {
       setOpenSkyError(null);
 
       try {
-        const { plane: curr } = await fetchOpenSkyPlane(trackedIcao24);
+        const { plane: curr, weatherImpact: nextWeatherImpact } = await fetchOpenSkyPlane(trackedIcao24);
         if (cancelled) return;
         setOpenSkyPlane(plane);
         setWeatherImpact(nextWeatherImpact);
