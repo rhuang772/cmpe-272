@@ -73,8 +73,10 @@ export default function FlightMapTestPage() {
           }
           //Takeoff Logic
           if (prev.onGround && !curr.onGround) {
-            setNotif({ open: true, msg: `Takeoff Successful: ${curr.callsign} is airborne.`, severity: 'success' });
+            setNotif({ open: true, msg: `${curr.callsign} is airborne.`, severity: 'success' });
             setPersistentStatus(`Initial Climb: ${curr.callsign} is gaining altitude.`);
+            setNotif({ open: true, msg: `Takeoff Successful`, severity: 'success' });
+             
           }
           //Landing Success Logic
           if (!prev.onGround && curr.onGround) {
@@ -82,7 +84,7 @@ export default function FlightMapTestPage() {
             setNotif({ open: true, msg: `Landing Successful: ${curr.callsign} has touched down.`, severity: 'success' });
           }
           // Clear Climb Status
-          if (curr.altitudeM > ALT_THRESHOLD) {
+          if (curr.altitudeM < ALT_THRESHOLD && curr.verticalRateMps > V_RATE_THRESHOLD) {
             setPersistentStatus(s => s?.includes('Initial Climb') ? null : s);
           }
         }
