@@ -1,6 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import type { OpenSkyFirstPlaneDto } from './plane.types';
+import type {
+  OpenSkyFirstPlaneDto,
+  PlaneWeatherImpactDto,
+} from './plane.types';
 import { PlanesCacheService } from './planes-cache.service';
+
+export interface PlaneSnapshotDto {
+  plane: OpenSkyFirstPlaneDto | null;
+  weatherImpact: PlaneWeatherImpactDto | null;
+}
 
 @Injectable()
 export class PlanesService {
@@ -11,7 +19,10 @@ export class PlanesService {
    */
   async getOpenSkyPlaneByIcao24(
     icao24: string,
-  ): Promise<OpenSkyFirstPlaneDto | null> {
-    return this.cache.getPlane(icao24)?.plane ?? null;
+  ): Promise<PlaneSnapshotDto> {
+    return {
+      plane: this.cache.getPlane(icao24)?.plane ?? null,
+      weatherImpact: this.cache.getWeatherImpact(icao24),
+    };
   }
 }

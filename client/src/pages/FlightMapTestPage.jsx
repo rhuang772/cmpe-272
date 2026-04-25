@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -10,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import { Link as RouterLink } from 'react-router-dom';
 import FlightMap from '../components/FlightMap';
 import OpenSkyPlaneTable from '../components/OpenSkyPlaneTable';
+import WeatherImpactCard from '../components/WeatherImpactCard';
 import { fetchOpenSkyPlane } from '../api/planes';
 import { normalizeIcao24 } from '../utils/icao24';
 
@@ -36,9 +36,13 @@ export default function FlightMapTestPage() {
   const [trackedIcao24, setTrackedIcao24] = useState(
     /** @type {string | null} */ (null),
   );
-
   const [openSkyPlane, setOpenSkyPlane] = useState(
     /** @type {import('../types/opensky-plane').OpenSkyFirstPlane | null} */ (
+      null
+    ),
+  );
+  const [weatherImpact, setWeatherImpact] = useState(
+    /** @type {import('../types/weather-impact').PlaneWeatherImpact | null} */ (
       null
     ),
   );
@@ -55,6 +59,7 @@ export default function FlightMapTestPage() {
   useEffect(() => {
     if (!trackedIcao24) {
       setOpenSkyPlane(null);
+      setWeatherImpact(null);
       setLastUpdated(null);
       setOpenSkyError(null);
       initialPollDoneRef.current = false;
@@ -64,6 +69,7 @@ export default function FlightMapTestPage() {
     let cancelled = false;
     initialPollDoneRef.current = false;
     setOpenSkyPlane(null);
+    setWeatherImpact(null);
     setLastUpdated(null);
 
     const poll = async () => {
@@ -74,9 +80,11 @@ export default function FlightMapTestPage() {
       }
       setOpenSkyError(null);
       try {
-        const { plane } = await fetchOpenSkyPlane(trackedIcao24);
+        const { plane, weatherImpact: nextWeatherImpact } =
+          await fetchOpenSkyPlane(trackedIcao24);
         if (cancelled) return;
         setOpenSkyPlane(plane);
+        setWeatherImpact(nextWeatherImpact);
         setLastUpdated(new Date());
       } catch (e) {
         if (!cancelled) {
@@ -93,8 +101,10 @@ export default function FlightMapTestPage() {
       }
     };
 
-    poll();
-    const intervalId = setInterval(poll, POLL_MS);
+    void poll();
+    const intervalId = setInterval(() => {
+      void poll();
+    }, POLL_MS);
 
     return () => {
       cancelled = true;
@@ -107,17 +117,17 @@ export default function FlightMapTestPage() {
     return [openSkyToMapPlane(openSkyPlane)];
   }, [openSkyPlane]);
 
-  const mapTitle = 'Aircraft (OpenSky)';
-
   const handleTrack = (e) => {
     e.preventDefault();
-    const n = normalizeIcao24(icaoInput);
-    if (!n) {
-      setFormError('Enter a valid ICAO24: 6 hexadecimal characters (e.g. 4ca2b1).');
+    const normalized = normalizeIcao24(icaoInput);
+    if (!normalized) {
+      setFormError(
+        'Enter a valid ICAO24: 6 hexadecimal characters (e.g. 4ca2b1).',
+      );
       return;
     }
     setFormError(null);
-    setTrackedIcao24(n);
+    setTrackedIcao24(normalized);
   };
 
   const handleStop = () => {
@@ -131,7 +141,7 @@ export default function FlightMapTestPage() {
       <Stack spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Button component={RouterLink} to="/" variant="text" size="small">
-            ← Home
+            {'<-'} Home
           </Button>
         </Box>
         <Typography variant="h4" component="h1" fontWeight={700}>
@@ -186,9 +196,19 @@ export default function FlightMapTestPage() {
 
       {openSkyError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          {openSkyError} — ensure the API is running (
-          <code>cd server && npm run start:dev</code>) and OpenSky is reachable.
+          {openSkyError} - ensure the API is running (
+          <code>cd server && npm run start:dev</code>) and Kafka-backed plane
+          data is available.
         </Alert>
+      )}
+
+      {trackedIcao24 && (
+        <Box sx={{ mb: 3 }}>
+          <WeatherImpactCard
+            weatherImpact={weatherImpact}
+            loading={initialLoading}
+          />
+        </Box>
       )}
 
       {trackedIcao24 && (
@@ -206,7 +226,7 @@ export default function FlightMapTestPage() {
       {trackedIcao24 && (
         <FlightMap
           planes={mapPlanes}
-          title={mapTitle}
+          title="Aircraft (OpenSky)"
           height={440}
           fitBoundsKey={trackedIcao24}
         />

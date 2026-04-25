@@ -1,13 +1,3 @@
-export interface PlaneDto {
-  id: string;
-  callsign: string;
-  lat: number;
-  lng: number;
-  altitudeM: number;
-  headingDeg: number;
-}
-
-/** First aircraft row from OpenSky `states/all`, for API + UI table */
 export interface OpenSkyFirstPlaneDto {
   id: string;
   callsign: string;
@@ -23,9 +13,16 @@ export interface OpenSkyFirstPlaneDto {
   lastContact: number | null;
 }
 
+export interface PlaneUpdateEvent {
+  icao24: string;
+  fetchedAt: number;
+  source: 'opensky';
+  plane: OpenSkyFirstPlaneDto | null;
+}
+
 export type WeatherImpactLevel = 'none' | 'low' | 'medium' | 'high';
 
-export interface WeatherAlertDto {
+export interface WeatherAlertSummary {
   id: string;
   event: string;
   severity: string | null;
@@ -35,13 +32,13 @@ export interface WeatherAlertDto {
   areaDesc: string | null;
 }
 
-export interface WeatherImpactDto {
+export interface WeatherImpactPayload {
   level: WeatherImpactLevel;
   summary: string;
   alertCount: number;
 }
 
-export interface PlaneWeatherImpactDto {
+export interface WeatherImpactEvent {
   icao24: string;
   fetchedAt: number;
   weatherCheckedAt: number;
@@ -50,6 +47,25 @@ export interface PlaneWeatherImpactDto {
     lat: number;
     lng: number;
   };
-  impact: WeatherImpactDto;
-  alerts: WeatherAlertDto[];
+  impact: WeatherImpactPayload;
+  alerts: WeatherAlertSummary[];
+}
+
+export interface NoaaAlertProperties {
+  id?: string;
+  event?: string;
+  severity?: string;
+  urgency?: string;
+  certainty?: string;
+  headline?: string;
+  areaDesc?: string;
+}
+
+export interface NoaaAlertFeature {
+  id?: string;
+  properties?: NoaaAlertProperties;
+}
+
+export interface NoaaAlertsResponse {
+  features?: NoaaAlertFeature[];
 }
