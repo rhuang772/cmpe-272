@@ -82,7 +82,7 @@ export default function FlightMapTestPage() {
             setNotif({ open: true, msg: `Landing Successful: ${curr.callsign} has touched down.`, severity: 'success' });
           }
           // Clear Climb Status
-          if (curr.altitudeM > ALT_THRESHOLD) {
+          if (curr.altitudeM < ALT_THRESHOLD && curr.verticalRateMps > V_RATE_THRESHOLD) {
             setPersistentStatus(s => s?.includes('Initial Climb') ? null : s);
           }
         }
