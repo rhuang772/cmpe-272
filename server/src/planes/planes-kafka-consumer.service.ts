@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, type Consumer } from 'kafkajs';
-import type { OpenSkyFirstPlaneDto } from './plane.types';
+import type {
+  OpenSkyFirstPlaneDto,
+  PlaneWeatherImpactDto,
+} from './plane.types';
 import { PlanesCacheService } from './planes-cache.service';
 
 interface PlaneUpdateEvent {
@@ -22,7 +25,8 @@ export class PlanesKafkaConsumerService
 {
   private readonly logger = new Logger(PlanesKafkaConsumerService.name);
   private readonly consumer: Consumer;
-  private readonly topic: string;
+  private readonly planeUpdatesTopic: string;
+  private readonly weatherImpactsTopic: string;
 
   constructor(
     private readonly config: ConfigService,
@@ -41,34 +45,61 @@ export class PlanesKafkaConsumerService
     });
 
     this.consumer = kafka.consumer({ groupId });
-    this.topic =
+    this.planeUpdatesTopic =
       this.config.get<string>('KAFKA_TOPIC_PLANES_UPDATES') ??
       'planes.opensky.updates';
+    this.weatherImpactsTopic =
+      this.config.get<string>('KAFKA_TOPIC_WEATHER_IMPACTS') ??
+      'planes.weather.impacts';
   }
 
   async onModuleInit(): Promise<void> {
     await this.consumer.connect();
     await this.consumer.subscribe({
-      topic: this.topic,
+      topic: this.planeUpdatesTopic,
+      fromBeginning: true,
+    });
+    await this.consumer.subscribe({
+      topic: this.weatherImpactsTopic,
       fromBeginning: true,
     });
 
     await this.consumer.run({
-      eachMessage: async ({ message }) => {
+      eachMessage: async ({ topic, message }) => {
         if (!message.value) return;
 
         const payload = message.value.toString();
 
         try {
-          const event = JSON.parse(payload) as PlaneUpdateEvent;
-          if (!event?.icao24 || typeof event.fetchedAt !== 'number') {
-            this.logger.warn(
-              `Ignoring malformed plane update event: ${payload}`,
+          if (topic === this.planeUpdatesTopic) {
+            const event = JSON.parse(payload) as PlaneUpdateEvent;
+            if (!event?.icao24 || typeof event.fetchedAt !== 'number') {
+              this.logger.warn(
+                `Ignoring malformed plane update event: ${payload}`,
+              );
+              return;
+            }
+
+            this.cache.setPlane(
+              event.icao24,
+              event.plane ?? null,
+              event.fetchedAt,
             );
             return;
           }
 
-          this.cache.setPlane(event.icao24, event.plane ?? null, event.fetchedAt);
+          const weatherImpact = JSON.parse(payload) as PlaneWeatherImpactDto;
+          if (
+            !weatherImpact?.icao24 ||
+            typeof weatherImpact.weatherCheckedAt !== 'number'
+          ) {
+            this.logger.warn(
+              `Ignoring malformed weather impact event: ${payload}`,
+            );
+            return;
+          }
+
+          this.cache.setWeatherImpact(weatherImpact.icao24, weatherImpact);
         } catch (error) {
           const msg =
             error instanceof Error ? error.message : 'Unknown Kafka parse error';
@@ -77,7 +108,9 @@ export class PlanesKafkaConsumerService
       },
     });
 
-    this.logger.log(`Subscribed to Kafka topic "${this.topic}"`);
+    this.logger.log(
+      `Subscribed to Kafka topics "${this.planeUpdatesTopic}" and "${this.weatherImpactsTopic}"`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {

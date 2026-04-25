@@ -1,3 +1,5 @@
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -6,8 +8,6 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
 
 /**
  * @typedef {import('../types/opensky-plane').OpenSkyFirstPlane} OpenSkyFirstPlane
@@ -35,7 +35,7 @@ export default function OpenSkyPlaneTable({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <CircularProgress size={22} />
           <Typography variant="body2" color="text.secondary">
-            Loading OpenSky…
+            Loading OpenSky...
           </Typography>
         </Box>
       </Paper>
@@ -59,7 +59,7 @@ export default function OpenSkyPlaneTable({
       >
         <Box>
           <Typography variant="subtitle1" fontWeight={600}>
-            OpenSky — ICAO24 {trackedIcao24}
+            OpenSky - ICAO24 {trackedIcao24}
           </Typography>
           <Typography variant="caption" color="text.secondary" component="div">
             <code>GET /states/all?icao24={trackedIcao24}</code> via Nest{' '}
@@ -85,7 +85,7 @@ export default function OpenSkyPlaneTable({
               <TableCell align="right">Lat</TableCell>
               <TableCell align="right">Lng</TableCell>
               <TableCell align="right">Alt (m)</TableCell>
-              <TableCell align="right">Hdg (°)</TableCell>
+              <TableCell align="right">Hdg (deg)</TableCell>
               <TableCell>On ground</TableCell>
               <TableCell align="right">V (m/s)</TableCell>
               <TableCell align="right">V/s (m/s)</TableCell>
@@ -116,14 +116,12 @@ export default function OpenSkyPlaneTable({
                 </TableCell>
                 <TableCell>{plane.onGround ? 'Yes' : 'No'}</TableCell>
                 <TableCell align="right">
-                  {plane.velocityMps != null
-                    ? plane.velocityMps.toFixed(1)
-                    : '—'}
+                  {plane.velocityMps != null ? plane.velocityMps.toFixed(1) : '-'}
                 </TableCell>
                 <TableCell align="right">
                   {plane.verticalRateMps != null
                     ? plane.verticalRateMps.toFixed(1)
-                    : '—'}
+                    : '-'}
                 </TableCell>
               </TableRow>
             )}

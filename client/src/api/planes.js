@@ -6,7 +6,10 @@ const apiBase = () => {
 
 /**
  * @param {string} icao24 Normalized 6-char lowercase hex
- * @returns {Promise<{ plane: import('../types/opensky-plane').OpenSkyFirstPlane | null }>}
+ * @returns {Promise<{
+ *   plane: import('../types/opensky-plane').OpenSkyFirstPlane | null;
+ *   weatherImpact: import('../types/weather-impact').PlaneWeatherImpact | null;
+ * }>}
  */
 export async function fetchOpenSkyPlane(icao24) {
   const params = new URLSearchParams({ icao24 });

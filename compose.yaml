@@ -21,10 +21,8 @@ services:
     image: apache/kafka-native
     depends_on:
       - kafka
-    entrypoint: [ "/bin/sh", "-c" ]
-    command: >
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.opensky.updates &&
-      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.opensky.errors
+    entrypoint: ["/bin/sh", "-lc"]
+    command: "/opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.opensky.updates && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.opensky.errors && /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1 --topic planes.weather.impacts"
 
 
   kafka-ui:
@@ -49,8 +47,7 @@ services:
       KAFKA_CLIENT_ID: api-gateway
       KAFKA_CONSUMER_GROUP_ID: api-gateway-group
       KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
-      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID}
-      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET}
+      KAFKA_TOPIC_WEATHER_IMPACTS: planes.weather.impacts
     depends_on:
       - kafka
       - kafka-init
@@ -59,6 +56,7 @@ services:
     build:
       context: ./services/plane-fetcher
     environment:
+      TRACKED_ICAO24S: ${TRACKED_ICAO24S:-4ca2b1}
       POLL_MS: ${POLL_MS:-10000}
       KAFKA_BROKERS: kafka:9093
       KAFKA_CLIENT_ID: plane-fetcher
@@ -70,6 +68,18 @@ services:
       - kafka
       - kafka-init
 
+  weather-enricher:
+    build:
+      context: ./services/weather-enricher
+    environment:
+      KAFKA_BROKERS: kafka:9093
+      KAFKA_CLIENT_ID: weather-enricher
+      KAFKA_CONSUMER_GROUP_ID: weather-enricher-group
+      KAFKA_TOPIC_PLANES_UPDATES: planes.opensky.updates
+      KAFKA_TOPIC_WEATHER_IMPACTS: planes.weather.impacts
+      NOAA_ALERTS_BASE_URL: https://api.weather.gov
+      NOAA_USER_AGENT: "cmpe-272-weather-enricher/1.0 (contact: team@example.com)"
+      WEATHER_CACHE_TTL_MS: ${WEATHER_CACHE_TTL_MS:-30000}
   analytics:
     build:
       context: ./services/analytics
